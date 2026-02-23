@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Fundamentos Digitales de la Imagen — Grupo 12</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Sora:wght@300;600;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --surface2: #1c1c28;
+      --accent: #5b8dee;
+      --accent2: #e85b8d;
+      --accent3: #5be8ae;
+      --text: #e8e8f0;
+      --muted: #6b6b88;
+      --mono: 'Space Mono', monospace;
+      --sans: 'Sora', sans-serif;
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      padding: 2rem 3rem 1.5rem;
+      border-bottom: 1px solid #ffffff10;
+      display: flex;
+      align-items: flex-end;
+      gap: 2rem;
+      background: linear-gradient(180deg, #0d0d1a 0%, transparent 100%);
+    }
+    header .badge {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      background: #5b8dee18;
+      border: 1px solid #5b8dee44;
+      padding: 0.35rem 0.75rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+    }
+    header h1 {
+      font-size: clamp(1.4rem, 3vw, 2rem);
+      font-weight: 800;
+      line-height: 1.1;
+      flex: 1;
+    }
+    header h1 span { color: var(--accent); }
+    header .meta {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    /* TABS */
+    nav.tabs {
+      display: flex;
+      padding: 0 3rem;
+      gap: 0;
+      border-bottom: 1px solid #ffffff10;
+      overflow-x: auto;
+    }
+    nav.tabs button {
+      font-family: var(--mono);
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      background: none;
+      border: none;
+      padding: 1rem 1.5rem;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    nav.tabs button:hover { color: var(--text); }
+    nav.tabs button.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* MAIN LAYOUT */
+    main {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      height: calc(100vh - 130px);
+    }
+
+    /* CANVAS AREA */
+    .canvas-wrap {
+      position: relative;
+      background: var(--surface);
+      overflow: hidden;
+    }
+    canvas { display: block; width: 100% !important; height: 100% !important; }
+
+    .canvas-label {
+      position: absolute;
+      top: 1.5rem;
+      left: 1.5rem;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      color: var(--accent3);
+      text-transform: uppercase;
+      background: #00000066;
+      padding: 0.4rem 0.8rem;
+      border-radius: 4px;
+      border: 1px solid #5be8ae22;
+    }
+
+    /* SIDEBAR */
+    aside {
+      background: var(--surface2);
+      border-left: 1px solid #ffffff08;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel {
+      display: none;
+      flex-direction: column;
+      gap: 0;
+      height: 100%;
+    }
+    .panel.active { display: flex; }
+
+    .panel-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid #ffffff08;
+    }
+    .panel-section h3 {
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* CONTROLS */
+    .control-group {
+      margin-bottom: 1.2rem;
+    }
+    .control-group label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .control-group label span {
+      font-family: var(--mono);
+      color: var(--accent);
+      font-size: 0.72rem;
+    }
+    input[type="range"] {
+      width: 100%;
+      -webkit-appearance: none;
+      height: 4px;
+      border-radius: 2px;
+      background: #ffffff18;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+    .btn-group {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.06em;
+      padding: 0.5rem 0.9rem;
+      border-radius: 4px;
+      border: 1px solid #ffffff20;
+      background: #ffffff08;
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn:hover { background: #ffffff14; border-color: #ffffff40; }
+    .btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn.accent2.active { background: var(--accent2); border-color: var(--accent2); }
+    .btn.accent3.active { background: var(--accent3); border-color: var(--accent3); color: #000; }
+
+    /* INFO CARDS */
+    .info-card {
+      background: #ffffff06;
+      border: 1px solid #ffffff0c;
+      border-radius: 6px;
+      padding: 1rem;
+      margin-top: 0.75rem;
+      font-size: 0.76rem;
+      line-height: 1.6;
+      color: #b0b0c8;
+    }
+    .info-card strong { color: var(--text); }
+    .math {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      background: #000000aa;
+      border: 1px solid #ffffff10;
+      border-radius: 4px;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.6rem;
+      color: var(--accent3);
+      line-height: 1.8;
+    }
+
+    /* STAT CHIPS */
+    .stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .stat {
+      background: #ffffff08;
+      border: 1px solid #ffffff12;
+      border-radius: 4px;
+      padding: 0.4rem 0.7rem;
+      font-family: var(--mono);
+      font-size: 0.65rem;
+      line-height: 1.3;
+    }
+    .stat .val { color: var(--accent); font-weight: 700; display: block; font-size: 0.85rem; }
+    .stat .lbl { color: var(--muted); }
+
+    /* TOGGLE SWITCH */
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      background: #ffffff18;
+      border-radius: 20px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background: var(--accent); }
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      width: 14px; height: 14px;
+      left: 3px; top: 3px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-track::after { transform: translateX(16px); }
+
+    /* COLOR PREVIEW */
+    .color-swatch {
+      width: 100%;
+      height: 60px;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+      border: 1px solid #ffffff10;
+    }
+
+    .gradient-bar {
+      width: 100%;
+      height: 40px;
+      border-radius: 6px;
+      margin-top: 0.5rem;
+      border: 1px solid #ffffff10;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="badge">Tema 12 · Computación Visual</div>
+    <h1>Fundamentos <span>Digitales</span><br>de la Imagen</h1>
+  </div>
+  <div class="meta">
+    Grupo 12<br>
+    23 febrero 2026<br>
+    Three.js r128
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="active" onclick="switchTab(0)">01 · Pixel &amp; Resolución</button>
+  <button onclick="switchTab(1)">02 · Bit Depth &amp; Color</button>
+  <button onclick="switchTab(2)">03 · Aliasing</button>
+  <button onclick="switchTab(3)">04 · Gamma &amp; HDR</button>
+</nav>
+
+<main>
+  <div class="canvas-wrap">
+    <canvas id="threeCanvas"></canvas>
+    <div class="canvas-label" id="canvasLabel">PIXEL GRID — RESOLUCIÓN</div>
+  </div>
+
+  <aside>
+    <!-- PANEL 0: Pixel & Resolución -->
+    <div class="panel active" id="panel-0">
+      <div class="panel-section">
+        <h3>Resolución</h3>
+        <div class="control-group">
+          <label>Resolución de grilla <span id="resVal">16 × 16</span></label>
+          <input type="range" id="resSlider" min="2" max="64" step="2" value="16">
+        </div>
+        <div class="control-group">
+          <label>Zoom pixel <span id="zoomVal">1.0×</span></label>
+          <input type="range" id="zoomSlider" min="1" max="5" step="0.1" value="1">
+        </div>
+        <div class="toggle-row">
+          Mostrar bordes de píxel
+          <label class="toggle">
+            <input type="checkbox" id="gridToggle" checked>
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+        <div class="stats" id="resStats">
+          <div class="stat"><span class="val" id="totalPx">256</span><span class="lbl">píxeles totales</span></div>
+          <div class="stat"><span class="val" id="dataSize">768 B</span><span class="lbl">tamaño 8bit</span></div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h3>Conceptos</h3>
+        <div class="info-card">
+          <strong>Píxel</strong> (picture element) es la unidad mínima e indivisible de una imagen digital. La <strong>resolución</strong> determina cuántos píxeles hay en cada dimensión.
+        </div>
+        <div class="math">
+          píxeles_totales = ancho × alto<br>
+          PPI = √(w² + h²) / diagonal_in
+        </div>
+        <div class="info-card">
+          Mayor resolución = más detalle, pero más memoria. A 100% de zoom, cada píxel de pantalla corresponde a un píxel de imagen.
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 1: Bit Depth -->
+    <div class="panel" id="panel-1">
+      <div class="panel-section">
+        <h3>Profundidad de color</h3>
+        <div class="control-group">
+          <label>Bits por canal <span id="bitVal">8 bits</span></label>
+          <input type="range" id="bitSlider" min="1" max="8" step="1" value="8">
+        </div>
+        <div class="control-group">
+          <label>Tono base (Hue) <span id="hueVal">0°</span></label>
+          <input type="range" id="hueSlider" min="0" max="360" step="1" value="0">
+        </div>
+        <div class="gradient-bar" id="gradientBar"></div>
+        <div class="stats" id="bitStats">
+          <div class="stat"><span class="val" id="levelsVal">256</span><span class="lbl">niveles / canal</span></div>
+          <div class="stat"><span class="val" id="colorsVal">16.7M</span><span class="lbl">colores totales</span></div>
+          <div class="stat"><span class="val" id="bppVal">24</span><span class="lbl">bits / píxel</span></div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h3>Matemática</h3>
+        <div class="math">
+          niveles = 2ⁿ<br>
+          colores_RGB = (2ⁿ)³ = 2^(3n)<br>
+          <br>
+          n=1 → 2³ = 8 colores<br>
+          n=8 → 256³ ≈ 16.7M colores<br>
+          n=10 → 1024³ ≈ 1B colores
+        </div>
+        <div class="info-card">
+          Con pocos bits aparece el <strong>banding</strong>: transiciones bruscas donde debería haber gradientes suaves. Visible especialmente en cielos o fondos degradados.
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 2: Aliasing -->
+    <div class="panel" id="panel-2">
+      <div class="panel-section">
+        <h3>Aliasing vs Anti-Aliasing</h3>
+        <div class="btn-group" style="margin-bottom:1rem;">
+          <button class="btn active" id="btnAlias" onclick="setAliasMode('aliased')">Aliased</button>
+          <button class="btn" id="btnSmooth" onclick="setAliasMode('smooth')">Anti-aliased</button>
+          <button class="btn" id="btnSplit" onclick="setAliasMode('split')">Split</button>
+        </div>
+        <div class="control-group">
+          <label>Tamaño de primitiva <span id="sizeVal">1.0</span></label>
+          <input type="range" id="sizeSlider" min="0.3" max="3" step="0.05" value="1">
+        </div>
+        <div class="control-group">
+          <label>Rotación <span id="rotVal">0°</span></label>
+          <input type="range" id="rotSlider" min="0" max="360" step="1" value="0">
+        </div>
+      </div>
+      <div class="panel-section">
+        <h3>Teorema de Nyquist</h3>
+        <div class="math">
+          f_muestreo ≥ 2 · f_señal<br>
+          <br>
+          Si f_pantalla &lt; 2 · f_geometría<br>
+          → artefactos de aliasing
+        </div>
+        <div class="info-card">
+          El aliasing ocurre cuando la geometría tiene detalles más finos que lo que la resolución de píxeles puede representar. El <strong>anti-aliasing</strong> promedia múltiples muestras por píxel (MSAA) para suavizar los bordes.
+        </div>
+      </div>
+    </div>
+
+    <!-- PANEL 3: Gamma & HDR -->
+    <div class="panel" id="panel-3">
+      <div class="panel-section">
+        <h3>Corrección Gamma</h3>
+        <div class="control-group">
+          <label>Valor γ (gamma) <span id="gammaVal">2.20</span></label>
+          <input type="range" id="gammaSlider" min="0.5" max="4.0" step="0.05" value="2.2">
+        </div>
+        <div class="toggle-row">
+          Mostrar modo HDR simulado
+          <label class="toggle">
+            <input type="checkbox" id="hdrToggle">
+            <div class="toggle-track"></div>
+          </label>
+        </div>
+        <div class="gradient-bar" id="gammaBar"></div>
+        <div class="stats">
+          <div class="stat"><span class="val" id="gammaCurr">2.20</span><span class="lbl">γ actual</span></div>
+          <div class="stat"><span class="val">sRGB</span><span class="lbl">estándar</span></div>
+          <div class="stat"><span class="val" id="hdrRange">255</span><span class="lbl">rango LDR</span></div>
+        </div>
+      </div>
+      <div class="panel-section">
+        <h3>Fórmulas</h3>
+        <div class="math">
+          // Encoding (linear → pantalla)<br>
+          out = valor ^ (1/γ)<br>
+          <br>
+          // Decoding (pantalla → linear)<br>
+          lin = valor ^ γ<br>
+          <br>
+          γ = 2.2 → estándar sRGB<br>
+          γ = 1.0 → espacio lineal
+        </div>
+        <div class="info-card">
+          Las pantallas aplican una curva gamma ≈ 2.2. Si no compensamos, los colores oscuros parecen demasiado oscuros y se pierde detalle en sombras. El espacio <strong>HDR</strong> usa >8 bits para preservar rango dinámico.
+        </div>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<script>
+// ─── THREE.JS SETUP ─────────────────────────────────────────────────────────
+const canvas = document.getElementById('threeCanvas');
+const wrap = canvas.parentElement;
+
+let W = wrap.clientWidth, H = wrap.clientHeight;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(W, H);
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0a0f);
+
+const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
+camera.position.z = 5;
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentTab = 0;
+let aliasMode = 'aliased';
+let meshes = [];
+let animId;
+
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+function clearScene() {
+  meshes.forEach(m => {
+    scene.remove(m);
+    if (m.geometry) m.geometry.dispose();
+    if (m.material) {
+      if (Array.isArray(m.material)) m.material.forEach(mat => mat.dispose());
+      else m.material.dispose();
+    }
+  });
+  meshes = [];
+}
+
+function hslToRgb(h, s, l) {
+  h /= 360; s /= 100; l /= 100;
+  let r, g, b;
+  if (s === 0) { r = g = b = l; }
+  else {
+    const hue2rgb = (p, q, t) => {
+      if (t < 0) t += 1; if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+  return [r, g, b];
+}
+
+// ─── TAB 0: PIXEL GRID ───────────────────────────────────────────────────────
+function buildPixelGrid() {
+  clearScene();
+  const res = parseInt(document.getElementById('resSlider').value);
+  const zoom = parseFloat(document.getElementById('zoomSlider').value);
+  const showGrid = document.getElementById('gridToggle').checked;
+
+  document.getElementById('resVal').textContent = `${res} × ${res}`;
+  document.getElementById('zoomVal').textContent = `${zoom.toFixed(1)}×`;
+  document.getElementById('totalPx').textContent = (res * res).toLocaleString();
+  const bytes = res * res * 3;
+  document.getElementById('dataSize').textContent = bytes >= 1024*1024
+    ? (bytes/(1024*1024)).toFixed(1)+' MB'
+    : bytes >= 1024 ? (bytes/1024).toFixed(1)+' KB' : bytes+' B';
+
+  const pxSize = (zoom * 1.8) / res;
+  const gap = showGrid ? 0.002 : 0;
+
+  for (let y = 0; y < res; y++) {
+    for (let x = 0; x < res; x++) {
+      const u = x / (res - 1);
+      const v = y / (res - 1);
+      // Procedural image: concentric rings + diagonal gradient
+      const cx = u - 0.5, cy = v - 0.5;
+      const dist = Math.sqrt(cx*cx + cy*cy);
+      const wave = 0.5 + 0.5 * Math.sin(dist * 20 - 2) * Math.cos((u + v) * 10);
+
+      let r = 0.2 + 0.6 * wave;
+      let g = 0.1 + 0.4 * (1 - dist * 1.5);
+      let b = 0.5 + 0.5 * Math.sin(u * Math.PI);
+
+      const geo = new THREE.PlaneGeometry(pxSize - gap, pxSize - gap);
+      const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, b) });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(
+        (x - res/2 + 0.5) * pxSize,
+        (y - res/2 + 0.5) * pxSize,
+        0
+      );
+      scene.add(mesh);
+      meshes.push(mesh);
+    }
+  }
+}
+
+// ─── TAB 1: BIT DEPTH ────────────────────────────────────────────────────────
+function buildBitDepth() {
+  clearScene();
+  const bits = parseInt(document.getElementById('bitSlider').value);
+  const hue = parseInt(document.getElementById('hueSlider').value);
+  const levels = Math.pow(2, bits);
+
+  document.getElementById('bitVal').textContent = `${bits} bits`;
+  document.getElementById('hueVal').textContent = `${hue}°`;
+  document.getElementById('levelsVal').textContent = levels;
+  const total = Math.pow(levels, 3);
+  document.getElementById('colorsVal').textContent =
+    total >= 1e9 ? (total/1e9).toFixed(1)+'B' :
+    total >= 1e6 ? (total/1e6).toFixed(1)+'M' : total.toLocaleString();
+  document.getElementById('bppVal').textContent = bits * 3;
+
+  // Update gradient bar
+  const bar = document.getElementById('gradientBar');
+  const stops = [];
+  for (let i = 0; i < levels; i++) {
+    const t = i / (levels - 1);
+    const lightness = 10 + t * 80;
+    stops.push(`hsl(${hue}, 70%, ${lightness}%)`);
+  }
+  bar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+
+  // Draw N horizontal gradient bands with quantized colors
+  const bands = Math.min(levels, 16);
+  const bandH = 1.6 / bands;
+
+  for (let b = 0; b < bands; b++) {
+    const t = b / (bands - 1 || 1);
+    const quantized = Math.round(t * (levels - 1)) / (levels - 1);
+    const lightness = 0.1 + quantized * 0.8;
+    const [r, g, bl] = hslToRgb(hue, 70, lightness * 100);
+
+    const geo = new THREE.PlaneGeometry(1.8, bandH - 0.005);
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, bl) });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, 0.8 - b * bandH - bandH / 2, 0);
+    scene.add(mesh);
+    meshes.push(mesh);
+  }
+
+  // Overlay "smooth" reference on right side
+  const segCount = 200;
+  const segW = 0.9 / segCount;
+  for (let i = 0; i < segCount; i++) {
+    const t = i / (segCount - 1);
+    const lightness = 0.1 + t * 0.8;
+    const [r, g, bl] = hslToRgb(hue, 70, lightness * 100);
+    const geo = new THREE.PlaneGeometry(segW, 1.6);
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(r, g, bl) });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0.9 + i * segW + segW / 2 - 0.45, 0, 0);
+    scene.add(mesh);
+    meshes.push(mesh);
+  }
+
+  // Labels via canvas texture
+  addLabel('CUANTIZADO', -0.45, 0.9, 0.7, '#5b8dee');
+  addLabel('CONTINUO', 0.45, 0.9, 0.7, '#5be8ae');
+  addLabel(`${bits}bit = ${levels} niveles`, -0.45, -0.92, 0.55, '#e8e8f0');
+}
+
+function addLabel(text, x, y, size, color) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = color;
+  ctx.font = `bold ${Math.round(size * 28)}px 'Space Mono', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 32);
+  const tex = new THREE.CanvasTexture(c);
+  const geo = new THREE.PlaneGeometry(0.7, 0.08);
+  const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(x, y, 0.01);
+  scene.add(mesh);
+  meshes.push(mesh);
+}
+
+// ─── TAB 2: ALIASING ─────────────────────────────────────────────────────────
+function buildAliasing() {
+  clearScene();
+  const sz = parseFloat(document.getElementById('sizeSlider').value);
+  const rot = parseFloat(document.getElementById('rotSlider').value) * Math.PI / 180;
+
+  document.getElementById('sizeVal').textContent = sz.toFixed(2);
+  document.getElementById('rotVal').textContent = `${document.getElementById('rotSlider').value}°`;
+
+  if (aliasMode === 'split') {
+    buildAliasSingle(scene, -0.5, sz, rot, false, meshes);
+    buildAliasSingle(scene, 0.5, sz, rot, true, meshes);
+    addLabel('ALIASED', -0.5, 0.93, 0.7, '#e85b8d');
+    addLabel('SMOOTH', 0.5, 0.93, 0.7, '#5be8ae');
+    // Divider
+    const geo = new THREE.PlaneGeometry(0.004, 2);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.2 });
+    const m = new THREE.Mesh(geo, mat);
+    scene.add(m); meshes.push(m);
+  } else if (aliasMode === 'aliased') {
+    buildAliasSingle(scene, 0, sz, rot, false, meshes);
+    addLabel('ALIASED — bordes dentados', 0, 0.93, 0.7, '#e85b8d');
+  } else {
+    buildAliasSingle(scene, 0, sz, rot, true, meshes);
+    addLabel('ANTI-ALIASED — bordes suavizados', 0, 0.93, 0.7, '#5be8ae');
+  }
+}
+
+function buildAliasSingle(scene, offsetX, sz, rot, smooth, arr) {
+  const segs = smooth ? 128 : 6;
+  const geo = new THREE.CircleGeometry(0.35 * sz, segs);
+  const mat = new THREE.MeshBasicMaterial({ color: smooth ? 0x5be8ae : 0xe85b8d });
+  const mesh = new THREE.Mesh(geo, mat);
+  mesh.position.set(offsetX, 0, 0);
+  mesh.rotation.z = rot;
+  scene.add(mesh); arr.push(mesh);
+
+  // Thin ring
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.35 * sz, 0.37 * sz, segs),
+    new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.4 })
+  );
+  ring.position.set(offsetX, 0, 0.001);
+  ring.rotation.z = rot;
+  scene.add(ring); arr.push(ring);
+
+  // Star inside (shows aliasing on diagonals)
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + rot;
+    const lineSegs = smooth ? 32 : 3;
+    const lineGeo = new THREE.BufferGeometry();
+    const pts = [
+      new THREE.Vector3(offsetX, 0, 0),
+      new THREE.Vector3(offsetX + Math.cos(angle) * 0.28 * sz, Math.sin(angle) * 0.28 * sz, 0)
+    ];
+    lineGeo.setFromPoints(pts);
+    const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }));
+    scene.add(line); arr.push(line);
+  }
+
+  // Grid overlay
+  const gridSize = 0.06;
+  for (let gx = -5; gx <= 5; gx++) {
+    for (let gy = -5; gy <= 5; gy++) {
+      const geoG = new THREE.PlaneGeometry(gridSize - 0.003, gridSize - 0.003);
+      const inside = Math.sqrt(gx*gx*gridSize*gridSize + gy*gy*gridSize*gridSize) < 0.35*sz;
+      const matG = new THREE.MeshBasicMaterial({
+        color: inside ? (smooth ? 0x5be8ae : 0xe85b8d) : 0x1c1c28,
+        transparent: true,
+        opacity: inside ? (smooth ? 0.6 : 1) : 0.3
+      });
+      const mG = new THREE.Mesh(geoG, matG);
+      mG.position.set(offsetX + gx * gridSize, gy * gridSize, -0.01);
+      scene.add(mG); arr.push(mG);
+    }
+  }
+}
+
+// ─── TAB 3: GAMMA ─────────────────────────────────────────────────────────────
+function buildGamma() {
+  clearScene();
+  const gamma = parseFloat(document.getElementById('gammaSlider').value);
+  const hdr = document.getElementById('hdrToggle').checked;
+
+  document.getElementById('gammaVal').textContent = gamma.toFixed(2);
+  document.getElementById('gammaCurr').textContent = gamma.toFixed(2);
+  document.getElementById('hdrRange').textContent = hdr ? '∞ (float)' : '255';
+
+  // Update gradient preview bar
+  const bar = document.getElementById('gammaBar');
+  const stopsLin = [], stopsGamma = [];
+  for (let i = 0; i <= 20; i++) {
+    const t = i / 20;
+    const gCorrected = Math.pow(t, 1/gamma);
+    const pct = i * 5;
+    stopsLin.push(`hsl(0,0%,${Math.round(t*100)}%) ${pct}%`);
+    stopsGamma.push(`hsl(0,0%,${Math.round(gCorrected*100)}%) ${pct}%`);
+  }
+
+  const segCount = 200;
+  const segW = 1.8 / segCount;
+
+  // TOP HALF: linear gradients
+  for (let i = 0; i < segCount; i++) {
+    const t = i / (segCount - 1);
+    const lin = t;
+    const col = hdr ? Math.min(lin * 3, 1) : lin; // HDR = over-bright
+    const geo = new THREE.PlaneGeometry(segW, 0.75);
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(col, col, col) });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(-0.9 + i * segW + segW/2, 0.42, 0);
+    scene.add(mesh); meshes.push(mesh);
+  }
+
+  // BOTTOM HALF: gamma corrected
+  for (let i = 0; i < segCount; i++) {
+    const t = i / (segCount - 1);
+    const corrected = Math.pow(t, 1 / gamma);
+    const col = hdr ? Math.min(corrected * 3, 1) : corrected;
+    const geo = new THREE.PlaneGeometry(segW, 0.75);
+    const mat = new THREE.MeshBasicMaterial({ color: new THREE.Color(col, col, col) });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(-0.9 + i * segW + segW/2, -0.42, 0);
+    scene.add(mesh); meshes.push(mesh);
+  }
+
+  addLabel('LINEAL (sin corrección)', 0, 0.88, 0.7, '#e85b8d');
+  addLabel(`GAMMA γ=${gamma.toFixed(2)}`, 0, -0.08, 0.7, '#5be8ae');
+  addLabel('val ^ (1/γ)', 0, -0.92, 0.6, '#5b8dee');
+
+  // Divider
+  const divGeo = new THREE.PlaneGeometry(1.8, 0.006);
+  const divMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.15 });
+  const div = new THREE.Mesh(divGeo, divMat);
+  scene.add(div); meshes.push(div);
+
+  // Gamma curve overlay (right side corner graph)
+  const pts = [];
+  for (let i = 0; i <= 50; i++) {
+    const t = i / 50;
+    pts.push(new THREE.Vector3(-0.9 + t * 0.4, -0.9 + Math.pow(t, 1/gamma) * 0.4, 0.02));
+  }
+  const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+  const line = new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x5be8ae }));
+  scene.add(line); meshes.push(line);
+
+  // Axis background
+  const axGeo = new THREE.PlaneGeometry(0.45, 0.45);
+  const axMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.5 });
+  const ax = new THREE.Mesh(axGeo, axMat);
+  ax.position.set(-0.675, -0.675, 0.01);
+  scene.add(ax); meshes.push(ax);
+}
+
+// ─── TABS ─────────────────────────────────────────────────────────────────────
+const labels = [
+  'PIXEL GRID — RESOLUCIÓN',
+  'BIT DEPTH — PROFUNDIDAD DE COLOR',
+  'ALIASING vs ANTI-ALIASING',
+  'CORRECCIÓN GAMMA & HDR'
+];
+const builders = [buildPixelGrid, buildBitDepth, buildAliasing, buildGamma];
+
+function switchTab(i) {
+  currentTab = i;
+  document.querySelectorAll('nav.tabs button').forEach((b, idx) => b.classList.toggle('active', idx === i));
+  document.querySelectorAll('.panel').forEach((p, idx) => p.classList.toggle('active', idx === i));
+  document.getElementById('canvasLabel').textContent = labels[i];
+  builders[i]();
+}
+
+// ─── ALIAS MODE ───────────────────────────────────────────────────────────────
+function setAliasMode(mode) {
+  aliasMode = mode;
+  ['btnAlias','btnSmooth','btnSplit'].forEach((id, i) => {
+    document.getElementById(id).classList.toggle('active', ['aliased','smooth','split'][i] === mode);
+  });
+  buildAliasing();
+}
+
+// ─── EVENT LISTENERS ──────────────────────────────────────────────────────────
+document.getElementById('resSlider').addEventListener('input', buildPixelGrid);
+document.getElementById('zoomSlider').addEventListener('input', buildPixelGrid);
+document.getElementById('gridToggle').addEventListener('change', buildPixelGrid);
+document.getElementById('bitSlider').addEventListener('input', buildBitDepth);
+document.getElementById('hueSlider').addEventListener('input', buildBitDepth);
+document.getElementById('sizeSlider').addEventListener('input', buildAliasing);
+document.getElementById('rotSlider').addEventListener('input', buildAliasing);
+document.getElementById('gammaSlider').addEventListener('input', buildGamma);
+document.getElementById('hdrToggle').addEventListener('change', buildGamma);
+
+// ─── RESIZE ───────────────────────────────────────────────────────────────────
+window.addEventListener('resize', () => {
+  W = wrap.clientWidth; H = wrap.clientHeight;
+  renderer.setSize(W, H);
+  const aspect = W / H;
+  camera.left = -aspect; camera.right = aspect;
+  camera.updateProjectionMatrix();
+  builders[currentTab]();
+});
+
+// Correct initial aspect
+(function initAspect() {
+  const aspect = W / H;
+  camera.left = -aspect; camera.right = aspect;
+  camera.updateProjectionMatrix();
+})();
+
+// ─── ANIMATE ──────────────────────────────────────────────────────────────────
+function animate() {
+  animId = requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+buildPixelGrid();
+animate();
+</script>
+</body>
+</html>
